@@ -1,0 +1,26 @@
+[Unit]
+Description=VideoGuard — Система видеонаблюдения
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=username
+Group=username
+WorkingDirectory=/opt/videoguard
+ExecStart=/opt/videoguard/videoguard --config /etc/videoguard/config.yaml
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=videoguard
+
+# Безопасность
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/videoguard /srv/videoguard-data /etc/videoguard
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

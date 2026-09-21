@@ -1,0 +1,43 @@
+{{template "base.html" .}}
+
+{{define "content"}}
+<div class="archive-page">
+    <h1>Архив записей</h1>
+    
+    <div class="filters">
+        <form method="GET" action="/archive" class="filter-form">
+            <select name="camera_id">
+                <option value="">Выберите камеру</option>
+                {{range .Cameras}}
+                <option value="{{.ID}}" {{if eq $.SelectedCamera .ID}}selected{{end}}>{{.Name}}</option>
+                {{end}}
+            </select>
+            
+            <input type="date" name="date" value="{{.SelectedDate}}" class="date-input">
+            
+            <button type="submit" class="btn">Найти</button>
+        </form>
+    </div>
+
+    {{if len .Segments}}
+    <div class="segment-list">
+        <h2>Сегменты за {{.SelectedDate}}</h2>
+        {{range .Segments}}
+        <div class="segment-item">
+            <span class="segment-name">{{.}}</span>
+            <a href="/static/recordings/{{$.SelectedCamera}}/{{.SelectedDate}}/{{.}}" 
+               class="btn btn-small" 
+               target="_blank"
+               download>
+                Скачать
+            </a>
+        </div>
+        {{end}}
+    </div>
+    {{else if .SelectedCamera}}
+    <p class="text-muted">Нет записей за выбранную дату</p>
+    {{else}}
+    <p class="text-muted">Выберите камеру и дату для просмотра архива</p>
+    {{end}}
+</div>
+{{end}}

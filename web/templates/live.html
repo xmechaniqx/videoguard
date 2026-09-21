@@ -1,0 +1,27 @@
+{{template "base.html" .}}
+
+{{define "content"}}
+<div class="live-page">
+    <h1>Просмотр в реальном времени</h1>
+    
+    {{range .Cameras}}
+    <div class="live-stream">
+        <h2>{{.Name}}</h2>
+        <div class="stream-container">
+            <!-- 
+                Live-поток будет реализован через:
+                - MJPEG (самый простой вариант для слабого железа)
+                - Или HLS (если потребуется лучшее качество)
+                
+                Пока показываем заглушку
+            -->
+            <div class="stream-placeholder">
+                <p>Поток камеры {{.Name}}</p>
+                <p class="text-muted">RTSP: {{.RTSPURL}}</p>
+                <p class="text-muted">Для просмотра потребуется поток MJPEG/HLS</p>
+            </div>
+        </div>
+    </div>
+    {{end}}
+</div>
+{{end}}

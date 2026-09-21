@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Title}}</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="/" class="navbar-brand">VideoGuard</a>
+            <ul class="navbar-nav">
+                <li><a href="/" class="{{if eq .Page "index"}}active{{end}}">Главная</a></li>
+                <li><a href="/live" class="{{if eq .Page "live"}}active{{end}}">Live</a></li>
+                <li><a href="/events" class="{{if eq .Page "events"}}active{{end}}">События</a></li>
+                <li><a href="/archive" class="{{if eq .Page "archive"}}active{{end}}">Архив</a></li>
+                <li><a href="/settings" class="{{if eq .Page "settings"}}active{{end}}">Настройки</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container">
+        {{block "content" .}}{{end}}
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>VideoGuard v0.1.0 &copy; 2026</p>
+        </div>
+    </footer>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

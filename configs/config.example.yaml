@@ -1,0 +1,59 @@
+# VideoGuard Configuration Example
+# Copy to /etc/videoguard/config.yaml and edit
+
+server:
+  listen: "0.0.0.0:8080"
+  read_timeout: 15s
+  write_timeout: 15s
+
+storage:
+  root: "./data"
+  retention_days: 7
+  emergency_threshold_percent: 10
+  aggressive_threshold_percent: 5
+
+cameras:
+  - id: "camera-1"
+    name: "Main Camera"
+    rtsp_url: "rtsp://USER:PASS@192.168.1.100:554/stream1"
+    # Credentials can be loaded from secrets.env:
+    # username: "${MAX_USERNAME}"
+    # password: "${MAX_PASSWORD}"
+    username: ""
+    password: ""
+
+recording:
+  enabled: true
+  segment_duration: "300s"  # 5 minutes
+  # Use remux (no re-encode) when possible
+  codec_copy: true
+
+events:
+  enabled: true
+  pre_record_seconds: 10
+  post_record_seconds: 20
+
+notifier:
+  # Global cooldown for motion notifications per camera (default: 5m)
+  # Repeated motion events during cooldown are aggregated into one notification
+  cooldown: 5m
+  # Per-camera cooldown overrides
+  # cooldown_per_camera:
+  #   camera-1: 10m
+  #   camera-2: 3m
+  max:
+    enabled: false
+    # Load from secrets.env:
+    # bot_token: "${MAX_BOT_TOKEN}"
+    # chat_id: "${MAX_CHAT_ID}"
+    bot_token: ""
+    chat_id: ""
+    retry_max: 3
+    retry_delay: 5s
+
+motion:
+  enabled: false
+  webhook_url: "http://127.0.0.1:8080/api/v1/events"
+
+logging:
+  level: "info"  # debug, info, warn, error

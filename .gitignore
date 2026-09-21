@@ -1,0 +1,35 @@
+# Runtime data
+srv/
+logs/
+
+# Secrets
+etc/videoguard/secrets.env
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Build artifacts
+videoguard
+videoguard.exe
+*.bin
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temp
+tmp/
+*.tmp
+
+# Test artifacts
+coverage.txt
+*.test
+
+
+prompts/
+configs/config.local.yaml
+build/

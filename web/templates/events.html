@@ -1,0 +1,54 @@
+{{template "base.html" .}}
+
+{{define "content"}}
+<div class="events-page">
+    <h1>События</h1>
+    
+    <div class="filters">
+        <form method="GET" action="/events" class="filter-form">
+            <select name="camera_id">
+                <option value="">Все камеры</option>
+                {{range .Cameras}}
+                <option value="{{.ID}}" {{if eq $.FilterCamera .ID}}selected{{end}}>{{.Name}}</option>
+                {{end}}
+            </select>
+            
+            <select name="type">
+                <option value="">Все типы</option>
+                <option value="motion" {{if eq $.FilterType "motion"}}selected{{end}}>Движение</option>
+                <option value="camera_online" {{if eq $.FilterType "camera_online"}}selected{{end}}>Камера онлайн</option>
+                <option value="camera_offline" {{if eq $.FilterType "camera_offline"}}selected{{end}}>Камера оффлайн</option>
+                <option value="system_error" {{if eq $.FilterType "system_error"}}selected{{end}}>Ошибка системы</option>
+            </select>
+            
+            <button type="submit" class="btn">Фильтр</button>
+            <a href="/events" class="btn btn-secondary">Сбросить</a>
+        </form>
+    </div>
+
+    <div class="event-list">
+        {{if len .Events}}
+            {{range .Events}}
+            <div class="event-item">
+                <div class="event-time">{{.StartedAt.Format "02.01.2006 15:04:05"}}</div>
+                <div class="event-info">
+                    <span class="event-camera">{{.CameraID}}</span>
+                    <span class="event-type type-{{.Type}}">{{.Type}}</span>
+                    <span class="event-source">{{.Source}}</span>
+                </div>
+                <div class="event-actions">
+                    {{if .SnapshotPath}}
+                    <a href="{{.SnapshotPath}}" class="btn btn-small" target="_blank">Снимок</a>
+                    {{end}}
+                    {{if .VideoPath}}
+                    <a href="{{.VideoPath}}" class="btn btn-small" target="_blank">Видео</a>
+                    {{end}}
+                </div>
+            </div>
+            {{end}}
+        {{else}}
+            <p class="text-muted">Событий не найдено</p>
+        {{end}}
+    </div>
+</div>
+{{end}}
