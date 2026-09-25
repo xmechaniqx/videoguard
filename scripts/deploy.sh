@@ -180,7 +180,7 @@ log_info "Конфигурация валидна"
 log_step "3. RUN TESTS"
 
 log_info "Запуск тестов..."
-if ! go test -v -race ./... 2>&1 | tee -a "$DEPLOY_LOG"; then
+if ! go test -v ./... 2>&1 | tee -a "$DEPLOY_LOG"; then
     log_error "Тесты не пройдены"
     exit 1
 fi

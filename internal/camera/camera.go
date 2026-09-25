@@ -204,10 +204,26 @@ func (c *Camera) Start(ctx context.Context, outputPath string) error {
 	c.ffmpegCtx = cancel
 	c.mu.Unlock()
 
-	// Запустить FFmpeg
-	if err := cmd.Start(); err != nil {
+	// Запустить FFmpeg с таймаутом 10 секунд
+	startErr := make(chan error, 1)
+	go func() {
+		startErr <- cmd.Start()
+	}()
+
+	select {
+	case err := <-startErr:
+		if err != nil {
+			c.setState(StateError)
+			return fmt.Errorf("запустить FFmpeg: %w", err)
+		}
+	case <-time.After(10 * time.Second):
+		// Таймаут — убиваем зависший FFmpeg
+		if cmd.Process != nil {
+			cmd.Process.Kill()
+		}
+		cancel()
 		c.setState(StateError)
-		return fmt.Errorf("запустить FFmpeg: %w", err)
+		return fmt.Errorf("FFmpeg не запустился за 10с — таймаут подключения")
 	}
 
 	c.setState(StateOnline)
@@ -326,6 +342,7 @@ func (c *Camera) buildFFmpegCommand(ctx context.Context, outputPath string) (*ex
 	// -fflags +flush_packets — гарантировать запись данных
 	args := []string{
 		"-rtsp_transport", "tcp",
+		"-stimeout", "5000000", // 5 секунд таймаут подключения
 		"-i", c.cfg.RTSPURL,
 		"-c", "copy",
 		"-f", "mp4",
@@ -334,6 +351,10 @@ func (c *Camera) buildFFmpegCommand(ctx context.Context, outputPath string) (*ex
 		"-avoid_negative_ts", "1",
 		"-fflags", "+flush_packets",
 		"-max_muxer_queue_size", "1024",
+		"-reconnect", "1",
+		"-reconnect_stream_repeated", "1",
+		"-reconnect_at_eof", "1",
+		"-reconnect_delay_max", "10",
 		outputPath,
 	}
 

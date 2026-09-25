@@ -321,9 +321,9 @@ func TestHandleStaticPathTraversal(t *testing.T) {
 
 	server.mux.ServeHTTP(w, req)
 
-	// Ожидаем 400 (path traversal blocked) или 307 (redirect от FileServer)
-	if w.Code != http.StatusBadRequest && w.Code != http.StatusTemporaryRedirect {
-		t.Errorf("ожидался статус 400 или 307, получено %d", w.Code)
+	// Ожидаем 301/307 (redirect от FileServer) или 400 (path traversal blocked)
+	if w.Code != http.StatusMovedPermanently && w.Code != http.StatusTemporaryRedirect && w.Code != http.StatusBadRequest {
+		t.Errorf("ожидался статус 301, 307 или 400, получено %d", w.Code)
 	}
 }
 

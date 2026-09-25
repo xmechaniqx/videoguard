@@ -40,6 +40,11 @@ func NewNotifier(botToken, chatID string, retryMax int, retryDelay time.Duration
 	}
 }
 
+// SetHTTPClient устанавливает кастомный HTTP-клиент (для тестов).
+func (n *Notifier) SetHTTPClient(client *http.Client) {
+	n.client = client
+}
+
 // Name возвращает имя уведомителя.
 func (n *Notifier) Name() string {
 	return "max"
@@ -87,7 +92,31 @@ func (n *Notifier) Notify(ctx context.Context, event *events.Event) error {
 func (n *Notifier) formatMessage(event *events.Event) string {
 	timeStr := event.StartedAt.Format("02.01.2006 15:04:05")
 
-	msg := fmt.Sprintf("🚨 Обнаружено движение\n\n")
+	var title string
+	switch event.Type {
+	case events.EventTypeMotion:
+		title = "🚨 Обнаружено движение"
+	case events.EventTypeCameraOnline:
+		title = "✅ Камера доступна"
+	case events.EventTypeCameraOffline:
+		title = "❌ Камера недоступна"
+	case events.EventTypeCameraReconnecting:
+		title = "🔄 Камера переподключается"
+	case events.EventTypeRecordingStarted:
+		title = "🎥 Начата запись"
+	case events.EventTypeRecordingStopped:
+		title = "⏹ Запись остановлена"
+	case events.EventTypeStorageWarning:
+		title = "⚠️ Предупреждение о хранилище"
+	case events.EventTypeStorageFull:
+		title = "🔴 Хранилище заполнено"
+	case events.EventTypeSystemError:
+		title = "💥 Ошибка системы"
+	default:
+		title = string(event.Type)
+	}
+
+	msg := fmt.Sprintf("%s\n\n", title)
 	msg += fmt.Sprintf("Камера: %s\n", event.CameraID)
 	msg += fmt.Sprintf("Время: %s\n", timeStr)
 	msg += fmt.Sprintf("Тип: %s\n", event.Type)

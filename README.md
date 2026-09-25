@@ -33,63 +33,29 @@
 
 ---
 
-## First install on Debian 12 i386
+## Первая установка на Debian 12 i386
 
-### 1. Установка зависимостей
-
-```bash
-# Обновить систему
-sudo apt update && sudo apt upgrade -y
-
-# Установить FFmpeg
-sudo apt install -y ffmpeg
-
-# Установить Motion (опционально, для детекции движения)
-sudo apt install -y motion
-
-# Проверить
-ffmpeg -version
-ffprobe -version
-```
-
-### 2. Создание каталогов
+### Быстрый старт (рекомендуется)
 
 ```bash
-# Каталог бинарника
-sudo mkdir -p /opt/videoguard
-
-# Каталог данных (записи, события, снимки)
-sudo mkdir -p /srv/videoguard-data
-
-# Каталог конфигурации
-sudo mkdir -p /etc/videoguard
-
-# Каталог логов
-sudo mkdir -p /var/log/videoguard
+# На сервере: клонировать проект, затем запустить установку
+cd /path/to/videoguard
+sudo ./scripts/setup.sh
 ```
 
-### 3. Копирование файлов
+Скрипт `scripts/setup.sh` автоматически:
+1. Обновляет систему и устанавливает зависимости (ffmpeg, motion)
+2. Делает `git pull` актуальной версии
+3. Собирает бинарник (linux/386)
+4. Создаёт все директории (`/opt/videoguard`, `/srv/videoguard-data`, `/etc/videoguard`, `/var/log/videoguard`)
+5. Копирует бинарник, конфигурацию и systemd-сервис
+6. Настраивает права пользователя
+7. Создаёт шаблон `secrets.env` для Telegram
+8. Задаёт RTSP URL камеры
+9. Включает и запускает systemd-сервис
+10. Проверяет health endpoint
 
-```bash
-# Копировать бинарник
-sudo cp videoguard /opt/videoguard/
-sudo chown -R username:username /opt/videoguard
-
-# Копировать конфигурацию
-sudo cp configs/config.example.yaml /etc/videoguard/config.yaml
-
-# Настроить права на данные
-sudo chown -R username:username /srv/videoguard-data
-```
-
-### 4. Настройка конфигурации
-
-```bash
-# Отредактировать конфигурацию
-sudo $EDITOR /etc/videoguard/config.yaml
-```
-
-**Основные параметры:**
+**Основные параметры конфигурации** (`/etc/videoguard/config.yaml`):
 
 ```yaml
 server:
@@ -110,73 +76,24 @@ recording:
 
 notifier:
   max:
-    enabled: false  # set true to enable Telegram notifications
+    enabled: false
     bot_token: "${MAX_BOT_TOKEN}"
     chat_id: "${MAX_CHAT_ID}"
 ```
 
-**Чувствительные данные** храните в `/etc/videoguard/secrets.env`:
+**Секреты** храните в `/etc/videoguard/secrets.env`:
 
 ```bash
 MAX_BOT_TOKEN=your_bot_token_here
 MAX_CHAT_ID=123456789
 ```
 
-### 5. Настройка systemd
+**Проверка:**
 
 ```bash
-# Копировать сервис-файл
-sudo cp deployments/systemd/videoguard.service /etc/systemd/system/
-
-# Перезагрузить daemon
-sudo systemctl daemon-reload
-
-# Включить автозапуск
-sudo systemctl enable videoguard
-
-# Запустить
-sudo systemctl start videoguard
-
-# Проверить статус
 sudo systemctl status videoguard
-```
-
-**Файл сервиса** (`videoguard.service`):
-
-```ini
-[Unit]
-Description=VideoGuard - Lightweight CCTV System
-After=network.target
-
-[Service]
-Type=simple
-User=username
-Group=username
-ExecStart=/opt/videoguard/videoguard --config /etc/videoguard/config.yaml
-Restart=on-failure
-RestartSec=5
-StandardOutput=journal
-StandardError=journal
-SyslogIdentifier=videoguard
-
-[Install]
-WantedBy=multi-user.target
-```
-
-### 6. Проверка
-
-```bash
-# Проверить сервис
-sudo systemctl status videoguard
-
-# Проверить health endpoint
 curl http://localhost:8080/api/v1/health
-
-# Проверить логи
 journalctl -u videoguard -f
-
-# Проверить валидацию конфигурации
-/opt/videoguard/videoguard --config /etc/videoguard/config.yaml --validate-config
 ```
 
 Ожидаемый ответ health:

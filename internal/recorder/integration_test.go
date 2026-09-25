@@ -3,7 +3,6 @@ package recorder
 import (
 	"os"
 	"os/exec"
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -20,6 +19,24 @@ func skipIfNoFFmpeg(t *testing.T) {
 	}
 }
 
+// skipIfNoRTSP проверяет что можно запустить RTSP сервер.
+func skipIfNoRTSP(t *testing.T) {
+	t.Helper()
+	skipIfNoFFmpeg(t)
+
+	// Проверить что порт 8555 свободен и FFmpeg может запустить RTSP
+	cmd := exec.Command("ffmpeg",
+		"-f", "lavfi", "-i", "testsrc=size=320x240:rate=1:duration=1",
+		"-f", "rtsp", "-rtsp_transport", "tcp", "-listen", "1",
+		"-rtsp_port", "8555", // используем другой порт для проверки
+		"rtsp://localhost:8555/test",
+	)
+	err := cmd.Run()
+	if err != nil {
+		t.Skip("FFmpeg не может запустить RTSP сервер — пропускаем интеграционный тест")
+	}
+}
+
 // TestIntegrationRTSPRecording проверяет полный цикл:
 // 1. Поднять тестовый RTSP поток через FFmpeg (testsrc)
 // 2. Запустить Recorder
@@ -29,7 +46,7 @@ func skipIfNoFFmpeg(t *testing.T) {
 // 6. Вернуть RTSP поток
 // 7. Проверить что запись продолжилась
 func TestIntegrationRTSPRecording(t *testing.T) {
-	skipIfNoFFmpeg(t)
+	skipIfNoRTSP(t)
 
 	tmpDir := t.TempDir()
 	st := storage.NewStorage(tmpDir)
@@ -44,11 +61,8 @@ func TestIntegrationRTSPRecording(t *testing.T) {
 	rtspURL := "rtsp://localhost:" + rtspPort + "/stream"
 
 	// FFmpeg генерирует тестовую картинку и отдаёт по RTSP
-	// -f lavfi -i testsrc — тестовая видео-генерация
-	// -f rtsp -rtsp_transport tcp -listen 1 — RTSP сервер на TCP
-	// -t 60 — работать 60 секунд (достаточно для теста)
 	ffmpegServer := exec.Command("ffmpeg",
-		"-y", // перезаписать если есть
+		"-y",
 		"-f", "lavfi",
 		"-i", "testsrc=size=320x240:rate=10:duration=60",
 		"-c:v", "libx264",
@@ -110,7 +124,6 @@ func TestIntegrationRTSPRecording(t *testing.T) {
 	for i := 0; i < 30; i++ {
 		time.Sleep(1 * time.Second)
 
-		// Проверить наличие сегментов
 		segments, err := st.ListSegmentsByDate("test-camera", time.Now())
 		if err == nil && len(segments) > 0 {
 			t.Logf("Сегмент найден: %s", segments[0])
@@ -234,7 +247,7 @@ func TestIntegrationSegmentationStructure(t *testing.T) {
 
 	// PathRecordingByDate должен вернуть: root/recordings/camera-1/2026/09/20
 	pathByDate := st.PathRecordingByDate(camID, date)
-	expected := filepath.Join(tmpDir, "recordings", "camera-1", "2026", "09", "20")
+	expected := tmpDir + "/recordings/camera-1/2026/09/20"
 	if pathByDate != expected {
 		t.Errorf("ожидался путь '%s', получено '%s'", expected, pathByDate)
 	}
@@ -242,20 +255,20 @@ func TestIntegrationSegmentationStructure(t *testing.T) {
 	// PathSegment должен вернуть: root/recordings/camera-1/2026/09/20/18-00-00.mp4
 	segTime := time.Date(2026, 9, 20, 18, 0, 0, 0, time.UTC)
 	segmentPath := st.PathSegment(camID, date, segTime)
-	expectedSegment := filepath.Join(tmpDir, "recordings", "camera-1", "2026", "09", "20", "18-00-00.mp4")
+	expectedSegment := tmpDir + "/recordings/camera-1/2026/09/20/18-00-00.mp4"
 	if segmentPath != expectedSegment {
 		t.Errorf("ожидался путь сегмента '%s', получено '%s'", expectedSegment, segmentPath)
 	}
 
 	// Создать директорию и проверить ListSegmentsByDate
-	testDir := filepath.Join(tmpDir, "recordings", "camera-1", "2026", "09", "20")
+	testDir := tmpDir + "/recordings/camera-1/2026/09/20"
 	if err := os.MkdirAll(testDir, 0755); err != nil {
 		t.Fatalf("не удалось создать тестовую директорию: %v", err)
 	}
 
 	// Создать тестовые сегменты
 	for i := 0; i < 3; i++ {
-		segName := filepath.Join(testDir, "seg_001.mp4")
+		segName := testDir + "/seg_001.mp4"
 		if err := os.WriteFile(segName, []byte("test"), 0644); err != nil {
 			t.Fatalf("не удалось создать тестовый сегмент: %v", err)
 		}
@@ -301,6 +314,4 @@ func TestIntegrationFFmpegCommandGeneration(t *testing.T) {
 	if len(outputPath) < 20 {
 		t.Errorf("путь слишком короткий: %s", outputPath)
 	}
-
-	t.Logf("Паттерн сегментации: %s", outputPath)
 }

@@ -2,6 +2,8 @@ package max
 
 import (
 	"context"
+	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -35,23 +37,21 @@ func TestNotifierFormatMessage(t *testing.T) {
 
 	message := notifier.formatMessage(event)
 
-	// Проверить, что сообщение содержит ключевую информацию
-	if !containsSubstring(message, "Движение") {
+	if !strings.Contains(message, "движение") {
 		t.Error("ожидалось сообщение о движении")
 	}
 
-	if !containsSubstring(message, "camera-1") {
+	if !strings.Contains(message, "camera-1") {
 		t.Error("ожидалось имя камеры в сообщении")
 	}
 
-	if !containsSubstring(message, "20.09.2026") {
+	if !strings.Contains(message, "20.09.2026") {
 		t.Error("ожидалась дата в сообщении")
 	}
 }
 
 // TestNotifierSendTextMessageValidation проверяет валидацию параметров для отправки.
 func TestNotifierSendTextMessageValidation(t *testing.T) {
-	// Создать уведомитель с невалидным токеном
 	notifier := NewNotifier("", "test-chat-id", 0, 0)
 
 	event := &events.Event{
@@ -62,7 +62,6 @@ func TestNotifierSendTextMessageValidation(t *testing.T) {
 		StartedAt: time.Now(),
 	}
 
-	// Отправка должна завершиться ошибкой (пустой токен)
 	ctx := context.Background()
 	err := notifier.Notify(ctx, event)
 	if err == nil {
@@ -90,8 +89,12 @@ func TestNotifierEmptyChatID(t *testing.T) {
 }
 
 // TestNotifierMultipleRetries проверяет поведение с несколькими попытками.
+// Тест делает реальный запрос к MAX API с таймаутом 1 сек и максимум 2 попытки.
 func TestNotifierMultipleRetries(t *testing.T) {
-	notifier := NewNotifier("test-token", "test-chat-id", 3, 1*time.Millisecond)
+	// Таймаут 1 сек, максимум 2 попытки
+	notifier := NewNotifier("test-token", "test-chat-id", 2, 500*time.Millisecond)
+	// Переопределить клиент с коротким таймаутом
+	notifier.SetHTTPClient(&http.Client{Timeout: 1 * time.Second})
 
 	event := &events.Event{
 		ID:        "retry-test",
@@ -103,8 +106,10 @@ func TestNotifierMultipleRetries(t *testing.T) {
 
 	ctx := context.Background()
 	err := notifier.Notify(ctx, event)
-	// Ошибка ожидается, но важно, что не паникует
-	_ = err
+	// Ошибка ожидается — токен невалидный
+	if err == nil {
+		t.Error("ожидалась ошибка при невалидном токене")
+	}
 }
 
 // TestNotifierContextCancellation проверяет отмену контекста.
@@ -119,9 +124,8 @@ func TestNotifierContextCancellation(t *testing.T) {
 		StartedAt: time.Now(),
 	}
 
-	// Создать отменяемый контекст
 	ctx, cancel := context.WithCancel(context.Background())
-	cancel() // Немедленно отменить
+	cancel()
 
 	err := notifier.Notify(ctx, event)
 	if err == nil {
@@ -145,7 +149,7 @@ func TestNotifierFormatMessageDifferentTypes(t *testing.T) {
 				CameraID:  "camera-1",
 				StartedAt: time.Date(2026, 9, 20, 18, 42, 17, 0, time.UTC),
 			},
-			wantStr: "Движение",
+			wantStr: "движение",
 		},
 		{
 			name: "camera_online событие",
@@ -170,19 +174,9 @@ func TestNotifierFormatMessageDifferentTypes(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			message := notifier.formatMessage(tt.event)
-			if !containsSubstring(message, tt.wantStr) {
+			if !strings.Contains(message, tt.wantStr) {
 				t.Errorf("ожидалось '%s' в сообщении, получено: %s", tt.wantStr, message)
 			}
 		})
 	}
-}
-
-// containsSubstring проверяет, содержит ли строка подстроку.
-func containsSubstring(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
 }

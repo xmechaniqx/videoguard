@@ -14,13 +14,10 @@ storage:
 
 cameras:
   - id: "camera-1"
-    name: "Main Camera"
-    rtsp_url: "rtsp://USER:PASS@192.168.1.100:554/stream1"
-    # Credentials can be loaded from secrets.env:
-    # username: "${MAX_USERNAME}"
-    # password: "${MAX_PASSWORD}"
-    username: ""
-    password: ""
+    name: "Besder 6024PW-IP207"
+    rtsp_url: "rtsp://admin:zzz000ZZZ@192.168.1.33:554/h264/ch1/main/av_stream"
+    username: "admin"
+    password: "zzz000ZZZ"
 
 recording:
   enabled: true
